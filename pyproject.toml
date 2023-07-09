@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "chatcmd"
+version = "0.1.0"
+description = ""
+authors = ["Gvard Windlass <gvard.windlass@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pexpect = "^4.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
