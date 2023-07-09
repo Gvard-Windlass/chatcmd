@@ -1,33 +1,47 @@
+import sys
 import pexpect
 
 
+def prepare_python_script(target_script) -> pexpect.spawn:
+    child = pexpect.spawn("bash")
+
+    child.expect(r"\$")
+    child.sendline("cd /mnt/c/Dev/chatcmd")
+    child.expect(r"\$")
+    child.sendline(f"python -m chatcmd.{target_script}")
+
+    return child
+
+
 def test_connection():
-    client = pexpect.spawn("bash")
-    server = pexpect.spawn("bash", timeout=None)
+    server = prepare_python_script("server")
+    server.timeout = None
+
+    client1 = prepare_python_script("client")
+    client1.logfile = sys.stdout.buffer
+    client2 = prepare_python_script("client")
+
     try:
-        server.expect(r"\$")
-        server.sendline("cd /mnt/c/Dev/chatcmd")
-        server.expect(r"\$")
-        server.sendline("python -m chatcmd.server")
+        client1.expect("Enter username: ")
+        client2.expect("Enter username: ")
 
-        # uncomment to see output
-        # client.logfile = sys.stdout.buffer
+        client1.sendline("gvard")
+        client2.sendline("alice")
 
-        client.expect(r"\$")
-        client.sendline("cd /mnt/c/Dev/chatcmd")
-        client.expect(r"\$")
-        client.sendline("python -m chatcmd.client")
-        client.expect("Enter username: ")
+        client1.expect("gvard connected!")
+        client2.expect("alice connected!")
 
-        client.sendline("gvard")
-        client.expect("gvard connected!")
-        client.sendline("hello")
-        client.expect("gvard: hello")
+        client1.sendline("hello")
+        client1.expect("gvard: hello")
+
+        client2.sendline("how it's going?")
+        client2.expect("alice: how it's going?")
+        client1.expect("alice: how it's going?")
 
         server.close()
-        client.expect("Server closed connection")
+        client1.expect("Server closed connection")
 
-        client.close()
     finally:
-        client.close()
         server.close()
+        client1.close()
+        client2.close()
