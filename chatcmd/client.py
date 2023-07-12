@@ -1,5 +1,6 @@
 import os
 import sys
+import termios
 import tty
 import logging
 import asyncio
@@ -37,15 +38,21 @@ async def main():
             sys.stdout.write(item)
         restore_cursor_position()
 
-    tty.setcbreak(0)
+    # switch terminal to raw mode to avoid race conditions
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    tty.setcbreak(fd)
+
     os.system("clear")
     rows = move_to_bottom_of_screen()
+
     messages = MessageStore(redraw_output, rows - 1)
 
     stdin_reader = await create_stdin_reader()
     sys.stdout.write("Enter username: ")
     sys.stdout.flush()
     username = await read_line(stdin_reader)
+
     reader, writer = await asyncio.open_connection("127.0.0.1", 8000)  # C
 
     writer.write(f"CONNECT {username}\n".encode())
@@ -62,6 +69,9 @@ async def main():
         logging.exception(e)
         writer.close()
         await writer.wait_closed()
+    finally:
+        # switch terminal back to echo mode
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 
 # if __name__ == "main":
