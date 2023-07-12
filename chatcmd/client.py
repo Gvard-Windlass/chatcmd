@@ -62,9 +62,11 @@ async def main():
     input_listener = asyncio.create_task(read_and_send(stdin_reader, writer))
 
     try:
-        await asyncio.wait(
+        _, pending = await asyncio.wait(
             [message_listener, input_listener], return_when=asyncio.FIRST_COMPLETED
         )
+        for task in pending:
+            task.cancel()
     except Exception as e:
         logging.exception(e)
         writer.close()
