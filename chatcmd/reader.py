@@ -3,7 +3,7 @@ import asyncio
 from asyncio import StreamReader
 from collections import deque
 
-from .utils import move_back_one_char, clear_line
+from .utils import move_back_one_char, clear_screen
 
 
 async def create_stdin_reader() -> StreamReader:
@@ -32,5 +32,5 @@ async def read_line(stdin_reader: StreamReader) -> str:
             input_buffer.append(input_char)
             sys.stdout.write(input_char.decode())
             sys.stdout.flush()
-    clear_line()
+    clear_screen()
     return b"".join(input_buffer).decode()

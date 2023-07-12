@@ -22,6 +22,10 @@ def clear_line() -> None:
     sys.stdout.write("\033[2K\033[0G")
 
 
+def clear_screen() -> None:
+    sys.stdout.write("\033[2J\033[0G")
+
+
 def move_back_one_char() -> None:
     sys.stdout.write("\033[1D")
 
