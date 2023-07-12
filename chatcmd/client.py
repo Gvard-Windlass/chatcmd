@@ -72,10 +72,12 @@ async def main():
         writer.close()
         await writer.wait_closed()
     finally:
+        sys.stdout.flush()
         # switch terminal back to echo mode
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 
-# if __name__ == "main":
-#     asyncio.run(main())
-asyncio.run(main())
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    print("Interrupted by user")
