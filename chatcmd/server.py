@@ -55,6 +55,9 @@ class ChatServer:
             while (data := await asyncio.wait_for(reader.readline(), 60)) != b"":
                 await self._notify_all(f"{username}: {data.decode()}")
             await self._notify_all(f"{username} has left the chat\n")
+        except asyncio.exceptions.TimeoutError as e:
+            print(f"Client {username} timed out")
+            await self._remove_user(username)
         except Exception as e:
             logging.exception("Error reading from client.", exc_info=e)
             await self._remove_user(username)
