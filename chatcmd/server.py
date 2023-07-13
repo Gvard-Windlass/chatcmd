@@ -5,7 +5,7 @@ from asyncio import StreamReader, StreamWriter
 
 class ChatServer:
     def __init__(self):
-        self._username_to_writer = {}
+        self._username_to_writer: dict[str, StreamWriter] = {}
 
     async def start_chat_server(self, host: str, port: int):
         server = await asyncio.start_server(self.client_connected, host, port)
