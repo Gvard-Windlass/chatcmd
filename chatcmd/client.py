@@ -53,7 +53,12 @@ async def main():
     sys.stdout.flush()
     username = await read_line(stdin_reader)
 
-    reader, writer = await asyncio.open_connection("127.0.0.1", 8000)  # C
+    try:
+        reader, writer = await asyncio.open_connection("127.0.0.1", 8000)  # C
+    except:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        sys.stdout.write("Could not connect to server\n")
+        return
 
     writer.write(f"CONNECT {username}\n".encode())
     await writer.drain()
