@@ -81,4 +81,7 @@ async def main():
     await chat_server.start_chat_server("127.0.0.1", 8000)
 
 
-asyncio.run(main())
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    print("\nInterrupted by user")
