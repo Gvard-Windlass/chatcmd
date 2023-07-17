@@ -50,7 +50,7 @@ class ChatClient:
             else:
                 await self._messages.append(message_str)
 
-        await self._messages.append("Server closed connection.")
+        await self._messages.append("\nServer closed connection.\n")
 
     async def _read_and_send(self):  # B
         while True:
@@ -66,12 +66,11 @@ class ChatClient:
                 self._send_event.clear()
 
     async def _redraw_output(self, items: deque):
-        save_cursor_position()
+        os.system("clear")
         move_to_top_of_screen()
         for item in items:
-            delete_line()
             sys.stdout.write(item)
-        restore_cursor_position()
+        move_to_bottom_of_screen()
 
     async def start_chat_client(self):
         # switch terminal to raw mode to avoid race conditions
@@ -80,9 +79,9 @@ class ChatClient:
         tty.setcbreak(fd)
 
         os.system("clear")
-        rows = move_to_bottom_of_screen()
+        move_to_bottom_of_screen()
 
-        self._messages = MessageStore(self._redraw_output, rows - 1)
+        self._messages = MessageStore(self._redraw_output)
 
         self._stdin_reader = await create_stdin_reader()
         sys.stdout.write("Enter username: ")
@@ -128,4 +127,4 @@ async def main():
 try:
     asyncio.run(main())
 except KeyboardInterrupt:
-    print("Interrupted by user")
+    print("\nInterrupted by user")
