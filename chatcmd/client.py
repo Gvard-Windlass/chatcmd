@@ -12,26 +12,58 @@ from .utils import *
 from .store import MessageStore
 
 
+class MessageError(Exception):
+    pass
+
+
 class ChatClient:
     def __init__(self) -> None:
-        self._writer: StreamWriter
-        self._reader: StreamReader
+        self._server_writer: StreamWriter
+        self._server_reader: StreamReader
         self._stdin_reader: StreamReader
         self._messages: MessageStore
+        self._ack_event = asyncio.Event()
+        self._send_event = asyncio.Event()
 
     async def _send_message(self, message: str):
-        self._writer.write((message + "\n").encode())
-        await self._writer.drain()
+        max_retries = 3
+        for i in range(max_retries + 1):
+            try:
+                self._server_writer.write((message + "\n").encode())
+                await self._server_writer.drain()
+                await asyncio.wait_for(self._ack_event.wait(), 2 + i)
+                break
+            except asyncio.exceptions.TimeoutError:
+                if i == max_retries:
+                    raise MessageError
+                else:
+                    await self._messages.append(
+                        f"Could not send the message, retrying...({i+1}/{max_retries})\n"
+                    )
 
     async def _listen_for_messages(self):  # A
-        while (message := await self._reader.readline()) != b"":
-            await self._messages.append(message.decode())
+        while (message := await self._server_reader.readline()) != b"":
+            message_str = message.decode()
+
+            if self._send_event and "\ACK" in message_str:
+                self._ack_event.set()
+            else:
+                await self._messages.append(message_str)
+
         await self._messages.append("Server closed connection.")
 
     async def _read_and_send(self):  # B
         while True:
             message = await read_line(self._stdin_reader)
-            await self._send_message(message)
+            try:
+                self._send_event.set()
+                await self._send_message(message)
+            except MessageError:
+                await self._messages.append("Failed to send the message\n")
+                sys.stdout.flush()
+            finally:
+                self._ack_event.clear()
+                self._send_event.clear()
 
     async def _redraw_output(self, items: deque):
         save_cursor_position()
@@ -58,7 +90,7 @@ class ChatClient:
         username = await read_line(self._stdin_reader)
 
         try:
-            self._reader, self._writer = await asyncio.open_connection(
+            self._server_reader, self._server_writer = await asyncio.open_connection(
                 "127.0.0.1", 8000
             )  # C
         except:
@@ -66,8 +98,8 @@ class ChatClient:
             sys.stdout.write("Could not connect to server\n")
             return
 
-        self._writer.write(f"CONNECT {username}\n".encode())
-        await self._writer.drain()
+        self._server_writer.write(f"CONNECT {username}\n".encode())
+        await self._server_writer.drain()
 
         message_listener = asyncio.create_task(self._listen_for_messages())  # D
         input_listener = asyncio.create_task(self._read_and_send())
@@ -80,8 +112,8 @@ class ChatClient:
                 task.cancel()
         except Exception as e:
             logging.exception(e)
-            self._writer.close()
-            await self._writer.wait_closed()
+            self._server_writer.close()
+            await self._server_writer.wait_closed()
         finally:
             sys.stdout.flush()
             # switch terminal back to echo mode

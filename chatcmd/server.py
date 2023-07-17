@@ -53,7 +53,7 @@ class ChatServer:
     async def _listen_for_messages(self, username: str, reader: StreamReader):  # D
         try:
             while (data := await asyncio.wait_for(reader.readline(), 60)) != b"":
-                await self._notify_all(f"{username}: {data.decode()}")
+                await self._process_message(username, data.decode())
             await self._notify_all(f"{username} has left the chat\n")
         except asyncio.exceptions.TimeoutError as e:
             print(f"Client {username} timed out")
@@ -61,6 +61,15 @@ class ChatServer:
         except Exception as e:
             logging.exception("Error reading from client.", exc_info=e)
             await self._remove_user(username)
+
+    async def _process_message(self, username: str, message: str):
+        await self._acknowledge(username)
+        await self._notify_all(f"{username}: {message}")
+
+    async def _acknowledge(self, username: str):
+        writer = self._username_to_writer[username]
+        writer.write(f"\ACK\n".encode())
+        await writer.drain()
 
     # Send a message to all connected clients, removing any disconnected users.
     async def _notify_all(self, message: str):  # E
