@@ -138,6 +138,10 @@ class ChatServer:
             writer = self._username_to_writer[username]
             writer.write(messages_json.encode())
             await writer.drain()
+        if re.match(r"\\[q|Q]", message):
+            await self._acknowledge(username)
+            print(f"Closing {username} connection")
+            await self._remove_user(username)
         else:
             await self._db.add_message(username, message)
             await self._acknowledge(username)
