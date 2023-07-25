@@ -93,7 +93,7 @@ class ChatClient:
         self._messages = MessageStore(self._redraw_output)
 
         self._stdin_reader = await create_stdin_reader()
-        sys.stdout.write("Enter username: ")
+        sys.stdout.write("Enter username and password: ")
         sys.stdout.flush()
         username = await read_line(self._stdin_reader)
 
