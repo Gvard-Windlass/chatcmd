@@ -15,8 +15,6 @@ test_session_factory = async_sessionmaker(
 
 
 # Set up the database once
-# Base.metadata.drop_all(bind=engine)
-# Base.metadata.create_all(bind=engine)
 async def init_models():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

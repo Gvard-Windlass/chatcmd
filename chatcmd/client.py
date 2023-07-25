@@ -4,6 +4,7 @@ import termios
 import tty
 import logging
 import asyncio
+import json
 from asyncio import StreamReader, StreamWriter
 from collections import deque
 
@@ -25,11 +26,15 @@ class ChatClient:
         self._ack_event = asyncio.Event()
         self._send_event = asyncio.Event()
 
+    def _prepare_message(self, message: str):
+        return f"{message}\n".encode()
+
     async def _send_message(self, message: str):
         max_retries = 3
+        prep = self._prepare_message(message)
         for i in range(max_retries + 1):
             try:
-                self._server_writer.write((message + "\n").encode())
+                self._server_writer.write(prep)
                 await self._server_writer.drain()
                 await asyncio.wait_for(self._ack_event.wait(), 2 + i)
                 break
@@ -47,6 +52,10 @@ class ChatClient:
 
             if self._send_event and "\ACK" in message_str:
                 self._ack_event.set()
+            elif "\PACK" in message_str:
+                message_pack = message_str.removeprefix("\PACK ")
+                message_list = json.loads(message_pack)
+                await self._messages.extend(message_list)
             else:
                 await self._messages.append(message_str)
 
@@ -90,7 +99,7 @@ class ChatClient:
 
         try:
             self._server_reader, self._server_writer = await asyncio.open_connection(
-                "127.0.0.1", 8000
+                "127.0.0.2", 8000
             )  # C
         except:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)

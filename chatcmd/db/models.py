@@ -18,7 +18,9 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(nullable=False)
 
-    messages: Mapped[list[Message]] = relationship("Message", back_populates="user")
+    messages: Mapped[list[Message]] = relationship(
+        "Message", back_populates="user", lazy="subquery"
+    )
 
 
 class Message(Base):
@@ -29,4 +31,6 @@ class Message(Base):
     timestamp: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
 
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    user: Mapped[User] = relationship("User", back_populates="messages")
+    user: Mapped[User] = relationship(
+        "User", back_populates="messages", lazy="subquery"
+    )

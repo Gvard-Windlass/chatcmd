@@ -18,15 +18,37 @@ class Settings:
     POSTGRES_USER = os.getenv("POSTGRES_USER")
     POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
     POSTGRES_SERVER = os.getenv("POSTGRES_SERVER", "localhost")
-    POSTGRES_PORT = os.getenv("POSTGRES_PORT", 5432)  # default postgres port is 5432
+    POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")  # default postgres port is 5432
     POSTGRES_DB = os.getenv("POSTGRES_DB", "chat")
     DATABASE_URL = f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+
+    def env_set(self) -> bool:
+        return all(
+            v is not None
+            for v in [
+                self.POSTGRES_USER,
+                self.POSTGRES_PASSWORD,
+                self.POSTGRES_SERVER,
+                self.POSTGRES_PORT,
+                self.POSTGRES_DB,
+            ]
+        )
+
+    def describe_env(self) -> dict[str, str | None]:
+        return {
+            "user": self.POSTGRES_USER,
+            "pwd": self.POSTGRES_PASSWORD,
+            "server": self.POSTGRES_SERVER,
+            "port": self.POSTGRES_PORT,
+            "database": self.POSTGRES_DB,
+            "url": self.DATABASE_URL,
+        }
 
 
 @lru_cache()
 def get_settings():
     if not env_loaded:
-        logging.fatal(
-            "Could not load .env file. Connections to db will be unsuccessful"
+        logging.warning(
+            "Could not load .env file. Environment variables must be set by hand or connections to db will be unsuccessful"
         )
     return Settings()
