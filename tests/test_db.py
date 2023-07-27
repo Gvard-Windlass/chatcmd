@@ -69,7 +69,7 @@ async def test_get_messages():
     MessageFactory.create_batch(10)
     await test_session.commit()
 
-    messages = await db.get_messages(12, datetime.now())
+    messages = await db.get_messages(12, 0, datetime.now())
     assert len(messages) == 10
 
     await test_session.close()

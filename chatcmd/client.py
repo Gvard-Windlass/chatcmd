@@ -27,6 +27,8 @@ class ChatClient:
         self._send_event = asyncio.Event()
 
     def _prepare_message(self, message: str):
+        if "\\LOAD" in message:
+            message += f" {self._messages.get_len()-3}"
         return f"{message}\n".encode()
 
     async def _send_message(self, message: str):

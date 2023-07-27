@@ -143,14 +143,14 @@ class ChatServer:
     async def _process_message(self, username: str, message: str):
         if re.match(r"\\LOAD", message):
             await self._acknowledge(username)
-            _, amount = message.strip().split(" ")
-            messages = await self._db.get_messages(int(amount), datetime.now())
+            _, amount, offset = message.strip().split(" ")
+            messages = await self._db.get_messages(int(amount), offset, datetime.now())
             prep_messages = [f"{x.user.name}: {x.text}" for x in messages]
             messages_json = "\PACK " + json.dumps(prep_messages) + "\n"
             writer = self._username_to_writer[username]
             writer.write(messages_json.encode())
             await writer.drain()
-        if re.match(r"\\[q|Q]", message):
+        elif re.match(r"\\[q|Q]", message):
             await self._acknowledge(username)
             print(f"Closing {username} connection")
             await self._remove_user(username)

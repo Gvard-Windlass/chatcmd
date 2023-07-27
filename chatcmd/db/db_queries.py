@@ -14,16 +14,18 @@ class Database:
         self._engine = create_async_engine(database_url)
         self._async_session = async_sessionmaker(self._engine)
 
-    async def get_messages(self, amount: int, before: datetime):
+    async def get_messages(self, amount: int, offset: int, before: datetime):
         async with self._async_session() as session:
             stmt = (
                 select(Message)
                 .filter(Message.timestamp < before)
-                .order_by(Message.timestamp.asc())
+                .order_by(Message.timestamp.desc())
+                .offset(offset)
                 .limit(amount)
             )
             result = await session.execute(stmt)
-            return result.scalars().all()
+            messages = result.scalars().all()
+            return sorted(messages, key=lambda m: m.timestamp)
 
     async def add_message(self, username: str, text: str):
         user = await self.get_user_by_name(username)
