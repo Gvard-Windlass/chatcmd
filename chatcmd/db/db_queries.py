@@ -11,8 +11,8 @@ class Database:
         self,
         database_url: str,
     ) -> None:
-        engine = create_async_engine(database_url)
-        self._async_session = async_sessionmaker(engine)
+        self._engine = create_async_engine(database_url)
+        self._async_session = async_sessionmaker(self._engine)
 
     async def get_messages(self, amount: int, before: datetime):
         async with self._async_session() as session:

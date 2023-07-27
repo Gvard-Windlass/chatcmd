@@ -4,9 +4,12 @@ import re
 import json
 from datetime import datetime
 from asyncio import StreamReader, StreamWriter
+import sys
 from .db.db_queries import Database
 from .db.db_config import get_settings
 from .validators import validate_password, validate_username
+
+from tests.database import LocalDatabase, SQLALCHEMY_DATABASE_URL
 
 
 class CredentialsError(Exception):
@@ -14,16 +17,25 @@ class CredentialsError(Exception):
 
 
 class ChatServer:
-    def __init__(self):
-        settings = get_settings()
-        if not settings.env_set():
-            raise EnvironmentError(
-                "Could not find necessary env variables, got: ", settings.describe_env()
-            )
-        self._db = Database(settings.DATABASE_URL)
+    def __init__(self, run_local: bool):
         self._username_to_writer: dict[str, StreamWriter] = {}
+        if run_local:
+            self._db = LocalDatabase(SQLALCHEMY_DATABASE_URL)
+            print("Running local database")
+        else:
+            settings = get_settings()
+            if not settings.env_set():
+                raise EnvironmentError(
+                    "Could not find necessary env variables, got: ",
+                    settings.describe_env(),
+                )
+            self._db = Database(settings.DATABASE_URL)
+            print("Running server database")
 
     async def start_chat_server(self, host: str, port: int):
+        if type(self._db) == LocalDatabase:
+            await self._db.recreate_tables()
+
         server = await asyncio.start_server(self.client_connected, host, port)
 
         async with server:
@@ -168,7 +180,8 @@ class ChatServer:
 
 async def main():
     try:
-        chat_server = ChatServer()
+        run_local = "run_local" in sys.argv
+        chat_server = ChatServer(run_local)
     except EnvironmentError as e:
         print(e)
         return
